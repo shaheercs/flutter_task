@@ -1,6 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_task/components/action_button.dart';
+import 'package:flutter_task/components/alert_dialog.dart';
 import 'package:flutter_task/constants/constant.dart';
+import 'package:flutter_task/services/network_status.dart';
 import 'package:flutter_task/services/networking.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
 
 class OtpScreen extends StatefulWidget {
   OtpScreen({this.mobileNo});
@@ -10,15 +15,37 @@ class OtpScreen extends StatefulWidget {
 }
 
 class _OtpScreenState extends State<OtpScreen> {
-  String mobileNumber;
+  String mobileNumber = "";
   TextEditingController controller;
-  String otp;
+  String otp = "";
 
   @override
   void initState() {
     super.initState();
     mobileNumber = widget.mobileNo;
     controller = TextEditingController(text: widget.mobileNo);
+  }
+
+  void submit() async {
+    bool internetStatus = await getStatus();
+    if (!internetStatus) {
+      showAlert('No internet, please try again', context);
+      return;
+    } else if (mobileNumber.length < 4) {
+      showAlert("please enter valid mobile No.", context);
+      return;
+    } else if (otp.length < 5) {
+      showAlert("wrong OTP", context);
+      return;
+    }
+    var response = await ApiHelper().verifyUser(mobileNumber, otp);
+    bool status = jsonDecode(response.body)['status'];
+    print(status);
+    if (status) {
+      Navigator.pop(context);
+    } else {
+      showAlert("please Enter Valid OTP", context);
+    }
   }
 
   @override
@@ -125,36 +152,10 @@ class _OtpScreenState extends State<OtpScreen> {
                           },
                         ),
                         K_H_space_twenty,
-                        GestureDetector(
-                          onTap: () async {
-                            var response =
-                                await ApiHelper().verifyUser(mobileNumber, otp);
-                            if (response.statusCode == 200) {
-                              Navigator.pop(context);
-                            }
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              image: DecorationImage(
-                                image: AssetImage('images/selected.png'),
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(
-                                vertical: 10.0,
-                                horizontal: 50.0,
-                              ),
-                              child: Text(
-                                'Submit',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16.0,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+                        ActionButton(
+                          text: "Submit",
+                          onPress: submit,
+                        )
                       ],
                     ),
                   ),

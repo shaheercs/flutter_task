@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_task/components/action_button.dart';
+import 'package:flutter_task/components/alert_dialog.dart';
+import 'package:flutter_task/components/reusable_textfield.dart';
+import 'package:flutter_task/constants/constant.dart';
 import 'package:flutter_task/screens/otp_screen.dart';
+import 'package:flutter_task/services/network_status.dart';
 import 'package:flutter_task/services/networking.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -9,6 +15,33 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   String mobileNumber;
+  void getMobileNumber(_mobileNo) {
+    mobileNumber = _mobileNo;
+    print(mobileNumber);
+  }
+
+  void userLogin() async {
+    bool status = await getStatus();
+    if (!status) {
+      showAlert('No internet, please try again', context);
+      return;
+    }
+    if (mobileNumber.length > 5) {
+      var response = await ApiHelper().postMobileNumber(mobileNumber);
+      print(response.body);
+      if (response.statusCode == 200) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OtpScreen(mobileNo: mobileNumber),
+          ),
+        );
+      }
+    } else {
+      showAlert("please enter valid mobile No.", context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -34,80 +67,25 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       children: [
                         Image.asset('images/house_icon.png'),
-                        SizedBox(
-                          height: 20.0,
-                        ),
+                        K_H_space_twenty,
                         Text(
                           'SELF-QUARANTINE',
                           style: TextStyle(
                               fontSize: 15.0, fontWeight: FontWeight.bold),
                         ),
-                        SizedBox(
-                          height: 20.0,
-                        ),
-                        TextField(
-                          onChanged: (_mobileNo) {
-                            mobileNumber = _mobileNo;
-                            print(mobileNumber);
-                          },
+                        K_H_space_twenty,
+                        ReusableTextField(
+                          hint: 'Mobile No.',
+                          icon: Icons.phone_iphone,
+                          onChange: getMobileNumber,
                           keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            hintText: 'Mobile No.',
-                            suffixIcon: InkWell(
-                              child: Icon(Icons.phone_iphone),
-                            ),
-                            hintStyle: TextStyle(
-                              fontSize: 13.0,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
                         ),
-                        SizedBox(
-                          height: 35.0,
+                        K_H_space_thirtyfive,
+                        ActionButton(
+                          text: "Log In",
+                          onPress: userLogin,
                         ),
-                        GestureDetector(
-                          onTap: () async {
-                            if (mobileNumber.length > 5) {
-                              var response = await ApiHelper()
-                                  .postMobileNumber(mobileNumber);
-                              print(response.body);
-                              if (response.statusCode == 200) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        OtpScreen(mobileNo: mobileNumber),
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              image: DecorationImage(
-                                image: AssetImage('images/selected.png'),
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(
-                                vertical: 10.0,
-                                horizontal: 50.0,
-                              ),
-                              child: Text(
-                                'Log In',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16.0,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(
-                          height: 20.0,
-                        ),
+                        K_H_space_twenty,
                         FlatButton(
                           child: Text(
                             'Don\'t have an account? Register',

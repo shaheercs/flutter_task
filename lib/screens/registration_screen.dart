@@ -1,8 +1,12 @@
+import 'dart:convert';
+import 'package:flutter_task/components/alert_dialog.dart';
+import 'package:flutter_task/components/toggle_button.dart';
+import 'package:flutter_task/services/network_status.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_task/components/action_button.dart';
+import 'package:flutter_task/components/reusable_textfield.dart';
 import 'package:flutter_task/constants/constant.dart';
 import 'package:flutter_task/services/networking.dart';
-
-enum Document { emirates_id, passport }
 
 class RegistrationScreen extends StatefulWidget {
   @override
@@ -10,11 +14,71 @@ class RegistrationScreen extends StatefulWidget {
 }
 
 class _RegistrationScreenState extends State<RegistrationScreen> {
-  String name;
-  String mobileNo;
+  String name = "";
+  String mobileNo = "";
   String emiratesID = "";
   String passportNo = "";
   Document selectedDocument = Document.emirates_id;
+  void getMobileNumber(_mobileNo) {
+    mobileNo = _mobileNo;
+    print(mobileNo);
+  }
+
+  void getName(data) {
+    name = data;
+  }
+
+  void getValidProof(data) {
+    if (selectedDocument == Document.passport) {
+      passportNo = data;
+    } else {
+      emiratesID = data;
+    }
+  }
+
+  void setAsPassport() {
+    setState(() {
+      selectedDocument = Document.passport;
+      emiratesID = "";
+    });
+  }
+
+  void setAsEmiratesID() {
+    setState(() {
+      selectedDocument = Document.emirates_id;
+      passportNo = "";
+    });
+  }
+
+  void registerAction() async {
+    checkInternet();
+    if (name.length < 3) {
+      showAlert('please enter valid name', context);
+    } else if (mobileNo.length < 5) {
+      showAlert('please enter valid mobile number', context);
+    } else if (emiratesID.length == 0 && passportNo.length == 0) {
+      showAlert('please fill valid proof', context);
+    } else {
+      var response = await ApiHelper()
+          .registerUser(name, emiratesID, passportNo, mobileNo);
+      bool status = jsonDecode(response.body)['status'];
+      print(status);
+      if (status) {
+        Navigator.pop(context);
+      } else {
+        showAlert('some thing went wrong, please try again', context);
+      }
+    }
+  }
+
+  void checkInternet() async {
+    bool internetStatus = await getStatus();
+    if (!internetStatus) {
+      showAlert('No internet, please try again', context);
+      return;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -47,37 +111,16 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               fontSize: 15.0, fontWeight: FontWeight.bold),
                         ),
                         K_H_space_twenty,
-                        TextField(
-                          onChanged: (data) {
-                            name = data;
-                          },
-                          decoration: InputDecoration(
-                            hintText: 'Full Name',
-                            suffixIcon: InkWell(
-                              child: Icon(Icons.perm_identity),
-                            ),
-                            hintStyle: TextStyle(
-                              fontSize: 13.0,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
+                        ReusableTextField(
+                          hint: 'Full Name',
+                          icon: Icons.perm_identity,
+                          onChange: getName,
                         ),
-                        TextField(
-                          onChanged: (data) {
-                            mobileNo = data;
-                          },
-                          decoration: InputDecoration(
-                            hintText: 'Mobile No.',
-                            suffixIcon: InkWell(
-                              child: Icon(Icons.phone_iphone),
-                            ),
-                            hintStyle: TextStyle(
-                              fontSize: 13.0,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
+                        ReusableTextField(
+                          hint: 'Mobile No.',
+                          icon: Icons.phone_iphone,
+                          onChange: getMobileNumber,
+                          keyboardType: TextInputType.number,
                         ),
                         K_H_space_twenty,
                         Row(
@@ -88,118 +131,45 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                   image: DecorationImage(
                                     image:
                                         AssetImage('images/selection_bg.png'),
-                                    fit: BoxFit.fitHeight,
+                                    fit: BoxFit.fitWidth,
                                   ),
                                 ),
                                 child: Row(
                                   children: [
-                                    Expanded(
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            selectedDocument =
-                                                Document.emirates_id;
-                                            passportNo = "";
-                                          });
-                                        },
-                                        child: Container(
-                                          decoration: selectedDocument ==
-                                                  Document.emirates_id
-                                              ? K_selection
-                                              : null,
-                                          child: Padding(
-                                            padding: EdgeInsets.all(10.0),
-                                            child: Text(
-                                              'Emirates ID',
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                fontSize: 12.0,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
+                                    ToggleButton(
+                                      text: 'Emirates ID',
+                                      onClick: setAsEmiratesID,
+                                      boxDecoration: selectedDocument ==
+                                              Document.emirates_id
+                                          ? K_selection
+                                          : null,
                                     ),
-                                    Expanded(
-                                      child: GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            selectedDocument =
-                                                Document.passport;
-                                            emiratesID = "";
-                                          });
-                                        },
-                                        child: Container(
-                                          decoration: selectedDocument ==
-                                                  Document.passport
+                                    ToggleButton(
+                                      text: 'Passport No.',
+                                      onClick: setAsPassport,
+                                      boxDecoration:
+                                          selectedDocument == Document.passport
                                               ? K_selection
                                               : null,
-                                          child: Padding(
-                                            padding: EdgeInsets.all(10.0),
-                                            child: Text(
-                                              'Passport No.',
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                fontSize: 12.0,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    )
+                                    ),
                                   ],
                                 ),
                               ),
                             )
                           ],
                         ),
-                        SizedBox(
-                          height: 5.0,
-                        ),
-                        TextField(
-                          decoration: InputDecoration(
-                            hintText: 'Passport No.',
-                            suffixIcon: InkWell(
-                              child: Icon(Icons.description),
-                            ),
-                            hintStyle: TextStyle(
-                              fontSize: 13.0,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
+                        K_H_space_five,
+                        ReusableTextField(
+                          hint: selectedDocument == Document.passport
+                              ? 'Passport No.'
+                              : 'Emirates ID',
+                          icon: Icons.description,
+                          onChange: getValidProof,
                         ),
                         K_H_space_thirtyfive,
-                        GestureDetector(
-                          onTap: () async {
-                            var response = await ApiHelper().registerUser(
-                                name, emiratesID, passportNo, mobileNo);
-                            print(response.body);
-                            if (response.statusCode == 200) {
-                              Navigator.pop(context);
-                            }
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              image: DecorationImage(
-                                image: AssetImage('images/selected.png'),
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(
-                                vertical: 10.0,
-                                horizontal: 50.0,
-                              ),
-                              child: Text(
-                                'Register',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16.0,
-                                ),
-                              ),
-                            ),
-                          ),
+                        ActionButton(
+                          text: "Register",
+                          onPress: registerAction,
                         ),
                         K_H_space_twenty,
                         FlatButton(
